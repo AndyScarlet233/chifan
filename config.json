@@ -1,0 +1,14 @@
+{
+  "library_dir": "books",
+  "filename_template": "{title}{author_part}.{ext}",
+  "domains": [
+    "zh.librella.fi",
+    "librella.fi",
+    "z-library.sk",
+    "z-lib.fm",
+    "z-lib.gl",
+    "z-library.im"
+  ],
+  "timeout": 30,
+  "daily_limit": null
+}

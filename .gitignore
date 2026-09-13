@@ -1,0 +1,13 @@
+# ── 凭据：永远不要提交 ──────────────────────────
+accounts.json
+credential.json
+*.key
+*.secret
+
+# ── 本地缓存与临时产物 ──────────────────────────
+.domain_cache.json
+__pycache__/
+*.pyc
+*.part
+books/
+wishlist*.txt
