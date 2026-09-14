@@ -1,13 +1,18 @@
-# ── 凭据：永远不要提交 ──────────────────────────
+# 凭据：永远不要提交
 accounts.json
 credential.json
+credentials/
+.env
 *.key
 *.secret
 
-# ── 本地缓存与临时产物 ──────────────────────────
+# 本地缓存与临时产物
 .domain_cache.json
 __pycache__/
 *.pyc
 *.part
 books/
 wishlist*.txt
+
+# ZCode 本地个人设置；项目 Skill 本身保留在版本库
+.zcode/settings.local.json
