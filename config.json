@@ -1,6 +1,9 @@
 {
   "library_dir": "books",
   "filename_template": "{title}{author_part}.{ext}",
+  "preferred_extension": "epub",
+  "preferred_language": null,
+  "min_match_score": 25,
   "domains": [
     "zh.librella.fi",
     "librella.fi",
