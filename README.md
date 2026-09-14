@@ -1,47 +1,70 @@
-# Z-Library 中文检索工具
+# 中文电子书检索工具
 
-这是一个面向中文用户的轻量级 Z-Library eAPI 工具，也可以作为 ZCode 项目级 Skill 使用。它不需要浏览器自动化，也不需要安装第三方 Python 包。
+这是一个面向中文用户的轻量级电子书检索工具，也可以作为 ZCode 用户级 Skill 使用。当前推荐用途是：让 AI 先检索、比较和核对候选版本，再把最可靠的几个结果交给用户选择，而不是把第一条结果直接当成正确版本。
 
-当前最推荐的用途是：让 AI 先检索、比较和核对电子书候选，再把最可靠的几个版本交给用户选择，而不是让 Agent 自动下载第一条结果。
+运行时只依赖 Python 标准库，不需要浏览器自动化，也不需要安装额外 Python 包。
 
-## ZCode 安全检索入口
+## 推荐：安装为 ZCode 全局 Skill
 
-仓库新增了：
+ZCode 官方支持用户级技能目录：
+
+```text
+~/.zcode/skills/<skill-name>/SKILL.md
+```
+
+本仓库提供 Windows 安装脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\安装ZCode全局技能.ps1
+```
+
+脚本会把 Skill、检索脚本和配置复制到：
+
+```text
+~/.zcode/skills/zlibrary-books/
+```
+
+首次安装时，默认目录会自动设为当前 Windows 用户的 Downloads 文件夹，通常类似：
+
+```text
+C:\Users\用户名\Downloads
+```
+
+再次运行安装脚本会更新 Skill 和脚本，但保留已有的本地 `config.json`，避免覆盖用户自己的目录和偏好设置。
+
+安装完成后，在 ZCode 中进入“设置 → 技能”，点击刷新并启用 `zlibrary-books`。之后无论打开哪个项目，都可以调用这个 Skill。
+
+## 安全检索入口
+
+核心 Agent 入口是：
 
 ```text
 scripts/zlib_agent.py
-.zcode/skills/zlibrary-books/SKILL.md
 ```
 
-`scripts/zlib_agent.py` 是专门给 ZCode/Agent 使用的安全检索入口。它只负责搜索和候选排序，不执行下载，并会在任何网络请求发生前强制恢复 Python 默认 TLS 证书与主机名校验。
+它只负责搜索和候选排序，并会在网络请求发生前恢复 Python 默认 TLS 证书与主机名校验。它不会输出 `remix_userkey`。
 
-把仓库作为 ZCode 工作区打开后，进入“设置 → 技能”，刷新并启用 `zlibrary-books` 即可。ZCode 项目级 Skill 的目录正是：
-
-```text
-<workspace>/.zcode/skills/<skill-name>/SKILL.md
-```
-
-之后可以直接对 Agent 说：
-
-```text
-帮我找《三体》的 EPUB，列出最可靠的几个版本供我选择。
-```
-
-Agent 会调用：
+项目工作区中可直接运行：
 
 ```bash
 python scripts/zlib_agent.py "三体 刘慈欣" --json
 ```
 
-默认优先 EPUB。如果用户明确要求 PDF，则使用：
+全局安装后，在 Windows PowerShell 中可运行：
 
-```bash
-python scripts/zlib_agent.py "书名 作者" --ext pdf --json
+```powershell
+python "$HOME/.zcode/skills/zlibrary-books/scripts/zlib_agent.py" "三体 刘慈欣" --json
 ```
 
-## 内置候选域名
+默认优先 EPUB。如果用户明确要求 PDF：
 
-`config.json` 已经内置多个 Z-Library/Librella eAPI 候选域名，目前包括：
+```powershell
+python "$HOME/.zcode/skills/zlibrary-books/scripts/zlib_agent.py" "书名 作者" --ext pdf --json
+```
+
+## 主检索地址
+
+`config.json` 内置多个 Z-Library/Librella eAPI 候选域名：
 
 - `zh.librella.fi`
 - `librella.fi`
@@ -50,64 +73,62 @@ python scripts/zlib_agent.py "书名 作者" --ext pdf --json
 - `z-lib.gl`
 - `z-library.im`
 
-程序会自动探测可用地址，所以正常使用时不需要每次访问网页。安全检索入口会使用系统 CA 和主机名校验，证书异常的镜像会被视为不可用，而不是关闭 TLS 验证。
+程序会自动探测可用地址，所以正常检索时不需要手动访问网页。证书异常的镜像会被安全检索入口视为不可用，而不是关闭 TLS 验证。
+
+## 备用书目源
+
+配置中增加了 `bibliographic_fallbacks`。当前记录了 Anna's Archive 的三个公开域名：
+
+- `annas-archive.gl`
+- `annas-archive.pk`
+- `annas-archive.gd`
+
+这些地址只作为主检索失败时的备用书目信息来源，用来核对书名、作者、出版社、年份、ISBN、语言和格式等元数据。项目不为这些备用源实现自动下载流程。
+
+如果多个来源的信息互相冲突，AI 应把冲突明确告诉用户，而不是自行断定某个版本一定正确。
 
 ## 默认 EPUB
 
-ZCode 安全检索入口默认使用 EPUB 作为偏好格式。`config.json` 也记录了：
+`config.json` 默认记录：
 
 ```json
 "preferred_extension": "epub"
 ```
 
-旧版 `scripts/zlib_cli.py` 仍保留，主要用于兼容原项目的手动 CLI 工作流。因为它原本包含兼容性较强、但安全边界更宽的实现，ZCode Skill 不会调用它的下载功能。
+AI 判断候选时还应同时查看作者、年份、出版社、语言和文件大小。`score` 只是辅助指标，教材不同版次、译著不同译本、合集和同名书都需要额外核对。
 
-## 候选排序
+## 下载目录
 
-安全检索入口复用原项目的候选评分逻辑，并统一输出 JSON。AI 可以看到：
+项目开发模式默认仍使用仓库里的 `books` 目录，方便调试；安装为 ZCode 全局 Skill 后，首次安装会把用户级配置的 `library_dir` 改成当前用户的 Downloads 文件夹。
 
-- 书名
-- 作者
-- 年份
-- 出版社
-- 语言
-- 格式
-- 文件大小
-- 匹配分
-- eAPI 图书 id / hash
+查看当前默认目录：
 
-`score` 只作为辅助判断，不代表版本一定正确。教材、译著、合集和不同版次应同时核对作者、年份、出版社、译者等信息。
-
-## 快速测试
-
-```bash
-python scripts/zlib_agent.py --help
-python scripts/zlib_agent.py "三体 刘慈欣" --json
+```powershell
+python "$HOME/.zcode/skills/zlibrary-books/scripts/显示下载目录.py"
 ```
 
-Linux/macOS 只有 `python3` 时，把 `python` 换成 `python3`。
+如果用户在对话中明确指定其它目录，AI 应优先使用用户指定的可写位置，而不是固定保存到代码仓库。
 
 ## 凭据
 
 eAPI 使用 `remix_userid` 和 `remix_userkey`。其中 `remix_userkey` 应按账号密码处理，不要提交到 GitHub，也不要粘贴到公开聊天中。
 
-安全检索入口复用原 CLI 的本地凭据来源，但不会输出 userkey。现有 `.gitignore` 会排除 `accounts.json` 与 `credential.json`。
-
-推荐优先使用环境变量或由用户本人在本地完成账号配置，不要让 AI 要求用户在聊天里发送密钥。
+推荐优先使用环境变量或由用户本人在本地完成账号配置。现有 `.gitignore` 会排除 `accounts.json`、`credential.json`、`credentials/` 和常见密钥文件。
 
 ## 安全说明
 
-目前给 ZCode 的 Agent 路径已经做了这些保护：
+给 ZCode 的 Agent 路径当前遵循这些规则：
 
-- 强制恢复 HTTPS 证书校验
+- 使用系统 CA 和主机名校验
 - 不输出 `remix_userkey`
-- 默认只搜索，不自动下载
+- 默认先搜索和比较版本
 - 不自动使用 `--force`
 - 不自动使用多账号轮换
-- 用户选择版本之前只展示候选
+- 主检索失败时，备用来源只用于书目核对
+- 用户指定保存目录时优先尊重用户选择
 
 原 `scripts/zlib_cli.py` 仍作为兼容代码保留；后续如果继续维护，建议逐步把安全修复迁回原 CLI，再删除兼容层。
 
 ## 使用边界
 
-本项目只是客户端工具。请只检索和访问你有权获取的内容，并遵守所在地法律、版权规定和相关服务条款。
+请只检索和访问你有权获取的内容，并遵守所在地法律、版权规定和相关服务条款。
