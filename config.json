@@ -12,6 +12,17 @@
     "z-lib.gl",
     "z-library.im"
   ],
+  "bibliographic_fallbacks": [
+    {
+      "name": "Anna's Archive",
+      "mode": "metadata_only",
+      "domains": [
+        "annas-archive.gl",
+        "annas-archive.pk",
+        "annas-archive.gd"
+      ]
+    }
+  ],
   "timeout": 30,
   "daily_limit": null
 }
